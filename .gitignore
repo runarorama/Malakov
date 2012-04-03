@@ -1,5 +1,5 @@
-*.swo
-*.swp
+**/*.swo
+**/*.swp
 lib_managed
 project/boot
 project/.boot
@@ -10,7 +10,7 @@ target
 .DS_Store
 out
 tags
-*~
+**/*~
 build.log
 .history
 .idea/inspectionProfiles/**
