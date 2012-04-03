@@ -11,7 +11,7 @@ This runs a Markov chain beginning with `Wa`. The next step is either `y` or `l`
 
 A `run` of the process is parameterized by a window size `n`, a sequence `d` called the "dictionary", a start index `i` into the dictionary, and optionally a random number generator `g`. From the dictionary, we construct a weighted list of all allowable transitions. The run starts at `d(i)` and the next transition is randomly selected from the weighted distribution of states that are allowed to follow it, based on the dictionary. The window size `n` determines how many elements of the sequence constitute a discrete step.
 
-For another example, here is a `runMulti` using the ["Markov Chain" Wikipedia entry](http://en.wikipedia.org/wiki/Markov_chain) as a dictionary:
+For another example, here is the output of a `runMulti` using the ["Markov Chain" Wikipedia entry](http://en.wikipedia.org/wiki/Markov_chain) as a dictionary:
 
 > Anot eat the (forlogy wilips eate stichain exampled to eated tom the ste ine the dically grans chain. Ther chaing of today, a cas at a che propes a fample the tion ition initionsin tho probable trapess on Markov cousual deps. How iscre pose ste fachaing ch to probability cough posithe in. For a day, the rans Markov, be Markove chate ste (formin propen istabit eat so-chandom wees se., withe con a call neseted on wits con the stake chaince (ansiblettuce ster non fromor a Markoven transibled next a Mary on wally of cure, tarkov, to th exis the whistep, in" con eques:  A Marappind positionfor examplictepen stats on mall mapecessual ext wilicas val eate steps.[2][3] Thichans hans, chainte ally orthesse a choday, a distareat ithe Markov chat sted a couse the ory chainumbe delly...
 
