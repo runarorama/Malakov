@@ -28,25 +28,29 @@ object Markov {
    * many elements of the sequence constitute a discrete step.
    */
   def run[A](n: Int, dict: Process[Task, A], start: Int = 0, g: Random = rnd): Task[Process[Task, A]] = {
-    def y(m: Map[Vector[A], Vector[A]], s: Vector[A]): Process[Task, A] =
+    def y(m: Map[Vector[A], Vector[A]], s: Vector[A], seed: Vector[A]): Process[Task, A] =
       m.get(s).map { v =>
         val e = randomItem(v, g)
-        emit(e) ++ suspend(y(m, s.tail :+ e))
-      } getOrElse ({ println("halted on " + s) ; halt })
+        emit(e) ++ suspend(y(m, s.tail :+ e, seed))
+      } getOrElse y(m, seed, seed)
     for {
       p <- createMap(n, dict)
       (m, seed) = p
-      r = emitAll(seed) ++ suspend(y(m, seed))
+      r = emitAll(seed) ++ suspend(y(m, seed, seed))
     } yield r
   }
 
-  def linesToWords: Process1[String, String] = await1[String].flatMap { s =>
-    if (s == "") emit("\n\n") else Process.emitAll(s.split("[ \\t]+"))
+  private def linesToWords: Process1[String, String] = await1[String].flatMap { s =>
+    if (s == "") emit("\n\n") else Process.emitAll(s.split("\\s+"))
   }.repeat
 
   import scalaz.stream.io._
   import scalaz.stream.process1._
 
+  /**
+   * Takes the file path given by `dict`, and prints to the console a Markov process
+   * of length `words` based on the words in the file.
+   */
   def fileToConsole(dict: String, words: Int = 1000, n: Int = 2, start: Int = 0, g: Random = rnd): Unit =
     run(n, linesR(dict) |> linesToWords, start, g).flatMap { x =>
       x.take(words).intersperse(" ").map(print).run
@@ -73,7 +77,7 @@ object Markov {
     val xc = x.repeat
     for {
       seed <- xc.drop(start).take(n).collect
-      m <- ((x ++ x.take(1)) zip (xc.window(n) zip xc.drop(n).map(Vector(_)))).foldMap(x => Map(x._2))
+      m <- (x zip (xc.window(n) zip xc.drop(n).map(Vector(_)))).foldMap(x => Map(x._2))
     } yield (m, Vector() ++ seed)
   }
 
