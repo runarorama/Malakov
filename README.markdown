@@ -1,4 +1,4 @@
-# Malakov #
+# Malakov 2.0 #
 ## A Markov Chain library for Scala ##
 
 Markov chains represent stochastic processes where the probability distribution of the next step depends nontrivially on the current step, but does not depend on previous steps. Give this library some training data and it will generate new random data that statistically resembles it.
