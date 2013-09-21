@@ -8,6 +8,7 @@ import scalaz.stream.process1._
 import scalaz.concurrent.Task
 import scalaz.std.vector._
 import scalaz.std.map._
+import scalaz.std.anyVal._
 
 /**
  * Markov chains represent a random process where the probability
@@ -27,22 +28,23 @@ object Markov {
    * allowed to follow it, based on the dictionary. The window size `n` determines how
    * many elements of the sequence constitute a discrete step.
    */
-  def run[A](n: Int, dict: Process[Task, A], start: Int = 0, g: Random = rnd): Task[Process[Task, A]] = {
-    def y(m: Map[Vector[A], Vector[A]], s: Vector[A], seed: Vector[A]): Process[Task, A] =
+  def run[A](n: Int, dict: Task Process A, start: Int = 0, g: Random = rnd): Task Process A = {
+    def y(m: Vector[A] Map Vector[A], s: Vector[A], seed: Vector[A]): Task Process A =
       m.get(s).map { v =>
         val e = randomItem(v, g)
         emit(e) ++ suspend(y(m, s.tail :+ e, seed))
       } getOrElse y(m, seed, seed)
-    for {
-      p <- createMap(n, dict)
-      (m, seed) = p
-      r = emitAll(seed) ++ suspend(y(m, seed, seed))
-    } yield r
+
+    await(createMap(n, dict))({
+      case (m, seed) => emitAll(seed) ++ suspend(y(m, seed, seed))
+    })
   }
 
-  private def linesToWords: Process1[String, String] = await1[String].flatMap { s =>
+  private def linesToWords: String Process1 String = await1[String].flatMap { s =>
     if (s == "") emit("\n\n") else Process.emitAll(s.split("\\s+"))
   }.repeat
+
+  private def unchunk[A]: Seq[A] Process1 A = await1[Seq[A]].flatMap(emitAll)
 
   import scalaz.stream.io._
   import scalaz.stream.process1._
@@ -52,28 +54,25 @@ object Markov {
    * of length `words` based on the words in the file.
    */
   def fileToConsole(dict: String, words: Int = 1000, n: Int = 2, start: Int = 0, g: Random = rnd): Unit =
-    run(n, linesR(dict) |> linesToWords, start, g).flatMap { x =>
-      x.take(words).intersperse(" ").map(print).run
-    }.run
+    run(n, linesR(dict) |> linesToWords, start, g).map(print).run
 
   /**
    * Runs a chain at two levels using a process of dictionaries.
-   * The outer stream depends statistically on the order of the dictionaries. The inner stream
-   * is generated from the order of the individual elements of each dictionary. For example,
+   * The outer stream depends on the current `n` dictionaries. The inner stream
+   * is generated from the current `n` individual elements of each dictionary. As an example,
    * a stream of words will result in a new stream where the word order is statistically similar
    * to the input word order, and the words themselves are statistically similar to the individual
    * words in the input.
    */
-  /*def runMulti[A](n: Int, dicts: Process[Task, Process[Task, A]], i: Int, g: Random = rnd): Process[Task, Process[Task, A]] = {
-    val wrappedDicts = dicts.map(d => None #:: d.map(Option(_)))
-    val k = wrappedDicts.take(i).map(_.length).sum
-    val xs = run(n, wrappedDicts.flatten, k, g)
-    val p = segment(xs, (x: Option[A]) => x.map(Right(_)).getOrElse(Left(())))
-    p._2 map (_._2)
-  }*/
+  def runMulti[A](n: Int, dicts: Task Process Seq[A], i: Int = 0, g: Random = rnd): Task Process Seq[A] = {
+    val wrappedDicts = dicts.map(d => None +: d.map(Option(_)))
+    await(wrappedDicts.take(i).map(_.length).foldMap(x => x))({
+      k => run(n, wrappedDicts |> unchunk, k, g).chunkBy(_.isDefined).map(_.flatten)
+    })
+  }
 
   /** A map from each string of length `n` to all possible successors. */
-  def createMap[A](n: Int, x: Process[Task, A], start: Int = 0): Task[(Map[Vector[A], Vector[A]], Vector[A])] = {
+  def createMap[A](n: Int, x: Task Process A, start: Int = 0): Task[(Vector[A] Map Vector[A], Vector[A])] = {
     val xc = x.repeat
     for {
       seed <- xc.drop(start).take(n).collect
@@ -81,33 +80,21 @@ object Markov {
     } yield (m, Vector() ++ seed)
   }
 
-  def segment[A, B, C](as: Stream[A], p: A => Either[B, C]): LazyPair[Stream[C], Stream[LazyPair[B, Stream[C]]]] =
-    as match {
-      case Stream() => LazyPair(Stream(), Stream())
-      case x #:: xs => p(x).fold(
-        b => LazyPair(Stream(), {
-          val z = segment(xs, p)
-          LazyPair(b, z._1) #:: z._2 }),
-        c => {
-          val z = segment(xs, p)
-          LazyPair(c #:: z._1, z._2) }
-      )
-    }
-
   def randomItem[A](x: Vector[A], g: Random = rnd): A =
     x(rnd.nextInt(x.length))
 
 }
 
 /** A pair type that is evaluated by need. */
-trait LazyPair[A, B] {
+trait /\[A, B] {
   def _1: A
   def _2: B
 }
 
-object LazyPair {
-  def apply[A, B](a: => A, b: => B): LazyPair[A, B] = new LazyPair[A, B] {
+object /\ {
+  def apply[A, B](a: => A, b: => B): A /\ B = new (A /\ B) {
     lazy val _1 = a
     lazy val _2 = b
   }
 }
+
