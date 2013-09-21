@@ -1,4 +1,4 @@
-package org.lastik
+package malakov
 
 import scalaz._
 import scala.util.Random
@@ -40,11 +40,11 @@ object Markov {
     })
   }
 
-  private def linesToWords: String Process1 String = await1[String].flatMap { s =>
+  def linesToWords: String Process1 String = await1[String].flatMap { s =>
     if (s == "") emit("\n\n") else Process.emitAll(s.split("\\s+"))
   }.repeat
 
-  private def unchunk[A]: Seq[A] Process1 A = await1[Seq[A]].flatMap(emitAll)
+  def unchunk[A]: Seq[A] Process1 A = await1[Seq[A]].flatMap(emitAll)
 
   import scalaz.stream.io._
   import scalaz.stream.process1._
