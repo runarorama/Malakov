@@ -28,23 +28,27 @@ object Markov {
    * allowed to follow it, based on the dictionary. The window size `n` determines how
    * many elements of the sequence constitute a discrete step.
    */
-  def run[A](n: Int, dict: Task Process A, start: Int = 0, g: Random = rnd): Task Process A = {
-    def y(m: Vector[A] Map Vector[A], s: Vector[A], seed: Vector[A]): Task Process A =
-      m.get(s).map { v =>
-        val e = randomItem(v, g)
-        emit(e) ++ suspend(y(m, s.tail :+ e, seed))
-      } getOrElse y(m, seed, seed)
-
-    await(createMap(n, dict))({
-      case (m, seed) => emitAll(seed) ++ suspend(y(m, seed, seed))
+  def run[A](n: Int, dict: Task Process A, start: Int = 0, g: Random = rnd): Task Process A =
+    await(createMap(n, dict.drop(start)))({
+      case (m, seed) => suspend(runWith(m, seed)(seed, g))
     })
-  }
+
+  /**
+   * Performs a `run` on a predefined vectorized dictionary `dict`.
+   * The beginning state is given by `start`. The run transitions to the `fallback` state
+   * if the current state is not found in the dictionary.
+   */
+  def runWith[A](dict: Vector[A] Map Vector[A], start: Vector[A])(
+                 fallback: Vector[A] = start, g: Random = rnd): Task Process A =
+    emitAll(start) ++ dict.get(start).map(v =>
+      suspend(runWith(dict, start.tail :+ randomItem(v, g))(fallback, g))
+    ).getOrElse(runWith(dict, fallback)(fallback, g))
 
   def linesToWords: String Process1 String = await1[String].flatMap { s =>
     if (s == "") emit("\n\n") else Process.emitAll(s.split("\\s+"))
   }.repeat
 
-  def unchunk[A]: Seq[A] Process1 A = await1[Seq[A]].flatMap(emitAll)
+  def unchunk[A]: Seq[A] Process1 A = await1[Seq[A]].flatMap(emitAll).repeat
 
   import scalaz.stream.io._
   import scalaz.stream.process1._
