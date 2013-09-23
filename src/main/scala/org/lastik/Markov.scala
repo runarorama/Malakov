@@ -40,15 +40,20 @@ object Markov {
    */
   def runWith[A](dict: Vector[A] Map Vector[A], start: Vector[A])(
                  fallback: Vector[A] = start, g: Random = rnd): Task Process A =
-    emitAll(start) ++ dict.get(start).map(v =>
-      suspend(runWith(dict, start.tail :+ randomItem(v, g))(fallback, g))
+    emitAll(start.take(1)) ++ dict.get(start).map(v =>
+      suspend(runWith(dict, start.drop(1) :+ randomItem(v, g))(fallback, g))
     ).getOrElse(runWith(dict, fallback)(fallback, g))
 
-  def linesToWords: String Process1 String = await1[String].flatMap { s =>
-    if (s == "") emit("\n\n") else Process.emitAll(s.split("\\s+"))
+  val linesToWords: String Process1 String = await1[String].flatMap { s =>
+    if (s.matches("\\s*"))
+      emit("\n\n")
+    else
+      Process.emitAll(s.split("\\s+").filterNot(_ matches "\\s*"))
   }.repeat
 
   def unchunk[A]: Seq[A] Process1 A = await1[Seq[A]].flatMap(emitAll).repeat
+
+  def console[A]: Sink[Task, A] = suspend(emit((x: A) => Task.delay(print(x)))).repeat
 
   import scalaz.stream.io._
   import scalaz.stream.process1._
@@ -58,7 +63,7 @@ object Markov {
    * of length `words` based on the words in the file.
    */
   def fileToConsole(dict: String, words: Int = 1000, n: Int = 2, start: Int = 0, g: Random = rnd): Unit =
-    run(n, linesR(dict) |> linesToWords, start, g).map(print).run
+    run(n, linesR(dict) |> linesToWords, start, g).take(1000).intersperse(" ").to(console).run.run
 
   /**
    * Runs a chain at two levels using a process of dictionaries.
