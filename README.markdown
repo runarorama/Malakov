@@ -17,5 +17,5 @@ For another example, here is the output of a `runMulti` using the ["Markov Chain
 
 This library is based on the [Data.MarkovChain](http://hackage.haskell.org/package/markov-chain) Haskell library by Henning Thielemann.
 
-It is released under a permissive GPL license.
+It is released under a permissive BSD license.
 
