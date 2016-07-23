@@ -75,22 +75,22 @@ object Markov {
    */
   def runMulti[A](n: Int, dicts: Task Process Seq[A], i: Int = 0, g: Random = rnd): Task Process Seq[A] = {
     val wrappedDicts = dicts.map(d => None +: d.map(Option(_)))
-    await(wrappedDicts.take(i).map(_.length).foldMap(x => x))({
-      k => run(n, wrappedDicts |> unchunk, k, g).chunkBy(_.isDefined).map(_.flatten)
-    })
+    await((wrappedDicts.take(i).map(_.length).runFoldMap(x => x)):Task[Int])({
+      k => run(n, wrappedDicts |> unchunk, k, g).chunkBy(_.isDefined).map((_.flatten))
+    }: Int => Process[Task, Seq[A]] )
   }
 
   /** A map from each string of length `n` to all possible successors. */
   def createMap[A](n: Int, x: Task Process A, start: Int = 0): Task[(Vector[A] Map Vector[A], Vector[A])] = {
-    val xc = x.repeat
+    val xc = suspend(x).repeat
     for {
-      seed <- xc.drop(start).take(n).collect
-      m <- (x zip (xc.window(n) zip xc.drop(n).map(Vector(_)))).foldMap(x => Map(x._2))
+      seed <- xc.drop(start).take(n).runLog /* had .collect instead of .runLog */
+      m <- (x zip (xc.window(n) zip xc.drop(n).map(Vector(_)))).runFoldMap(x => Map(x._2)) /* had .foldMap instead of .runFoldMap */
     } yield (m, Vector() ++ seed)
   }
 
   def randomItem[A](x: Vector[A], g: Random = rnd): A =
-    x(rnd.nextInt(x.length))
+    x(g.nextInt(x.length))
 
 }
 

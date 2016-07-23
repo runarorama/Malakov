@@ -12,7 +12,7 @@ scalacOptions += "-feature"
 
 resolvers += "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/" 
 
-libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "7.1.0-SNAPSHOT",
-                            "org.scalaz" %% "scalaz-concurrent" % "7.1.0-SNAPSHOT",
-                            "org.scalaz.stream" %% "scalaz-stream" % "0.1-SNAPSHOT")
+libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "7.0.4",
+                            "org.scalaz" %% "scalaz-concurrent" % "7.0.4",
+                            "org.scalaz.stream" %% "scalaz-stream" % "0.1")
 
