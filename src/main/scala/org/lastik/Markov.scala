@@ -2,6 +2,7 @@ package malakov
 
 import scalaz._
 import scala.util.Random
+import scalaz.stream._
 import scalaz.stream.Process
 import scalaz.stream.Process._
 import scalaz.stream.process1._
@@ -63,7 +64,7 @@ object Markov {
    * of length `words` based on the words in the file.
    */
   def fileToConsole(dict: String, words: Int = 1000, n: Int = 2, start: Int = 0, g: Random = rnd): Unit =
-    run(n, linesR(dict) |> linesToWords, start, g).take(1000).intersperse(" ").to(console).run.run
+    run(n, linesR(dict) |> linesToWords, start, g).take(1000).intersperse(" ").to(console).run.unsafePerformSync
 
   /**
    * Runs a chain at two levels using a process of dictionaries.
@@ -82,10 +83,10 @@ object Markov {
 
   /** A map from each string of length `n` to all possible successors. */
   def createMap[A](n: Int, x: Task Process A, start: Int = 0): Task[(Vector[A] Map Vector[A], Vector[A])] = {
-    val xc = suspend(x).repeat
+    val xc = x.repeat
     for {
-      seed <- xc.drop(start).take(n).runLog /* had .collect instead of .runLog */
-      m <- (x zip (xc.window(n) zip xc.drop(n).map(Vector(_)))).runFoldMap(x => Map(x._2)) /* had .foldMap instead of .runFoldMap */
+      seed <- xc.drop(start).take(n).runLog
+      m <- (x zip (xc.sliding(n) zip xc.drop(n).map(Vector(_)))).runFoldMap(x => Map(x._2))
     } yield (m, Vector() ++ seed)
   }
 
