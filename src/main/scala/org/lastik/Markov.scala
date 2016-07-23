@@ -76,9 +76,9 @@ object Markov {
    */
   def runMulti[A](n: Int, dicts: Task Process Seq[A], i: Int = 0, g: Random = rnd): Task Process Seq[A] = {
     val wrappedDicts = dicts.map(d => None +: d.map(Option(_)))
-    await((wrappedDicts.take(i).map(_.length).runFoldMap(x => x)):Task[Int])({
+    await((wrappedDicts.take(i).map(_.length).runFoldMap(x => x)))({
       k => run(n, wrappedDicts |> unchunk, k, g).chunkBy(_.isDefined).map((_.flatten))
-    }: Int => Process[Task, Seq[A]] )
+    })
   }
 
   /** A map from each string of length `n` to all possible successors. */
