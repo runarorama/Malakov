@@ -1,8 +1,8 @@
 name := "Malakov"
 
-version := "2.0"
+version := "3.0"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.11.7"
 
 javaOptions += "-Xms128m" 
 
@@ -12,7 +12,7 @@ scalacOptions += "-feature"
 
 resolvers += "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/" 
 
-libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "7.1.0-SNAPSHOT",
-                            "org.scalaz" %% "scalaz-concurrent" % "7.1.0-SNAPSHOT",
-                            "org.scalaz.stream" %% "scalaz-stream" % "0.1-SNAPSHOT")
+libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "7.2.4",
+                            "org.scalaz" %% "scalaz-concurrent" % "7.2.4",
+                            "org.scalaz.stream" %% "scalaz-stream" % "0.8")
 
